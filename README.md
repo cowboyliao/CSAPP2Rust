@@ -1,0 +1,3 @@
+# Usage
+learning git & make & C & rust... 
+make my tooling and basic computer compeletly.
