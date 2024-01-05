@@ -1,32 +1,49 @@
 {
-  description = "A Nix-flake-based Node.js development environment";
+  description = "A Nix-flake-based C development environment";
 
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+
+  nixConfig = {
+    builders-use-substitutes = true;
+    experimental-features = [ "nix-command" "flakes" ];
+    substituters = [
+      https:/mirrors.sjtug.sjtu.edu.cn/nix-channels/store
+      "https://cache.nixos.org/"
+    ];
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
   };
 
-  outputs = { self , nixpkgs ,... }: let
-    # system should match the system you are running on
-    # system = "x86_64-linux";
-    system = "x86_64-darwin";
-  in {
-    devShells."${system}".default = let
-      pkgs = import nixpkgs {
-        inherit system;
-      };
-    in pkgs.mkShell {
-      # create an environment with nodejs_18, pnpm, and yarn
-      packages = with pkgs; [
-        nodejs_18
-        nodePackages.pnpm
-        (yarn.override { nodejs = nodejs_18; })
-        nushell
-      ];
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-      shellHook = ''
-        echo "node `${pkgs.nodejs}/bin/node --version`"
-        exec nu
-      '';
+  outputs = { self, nixpkgs }:
+    let
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      forEachSupportedSystem = f: nixpkgs.lib.genAttrs supportedSystems (system: f {
+        pkgs = import nixpkgs { inherit system; };
+      });
+    in
+    {
+      devShells = forEachSupportedSystem ({ pkgs }: {
+        default = pkgs.mkShell {
+          packages = with pkgs; [ 
+            #lib
+            openssl 
+
+            #tools
+            gdb
+            gnumake
+            gcc
+            cmake
+            clang-tools
+          ];
+        };
+      });
+      # shellHook = ''
+      #   exec fish
+      # '';
     };
-  };
 }
